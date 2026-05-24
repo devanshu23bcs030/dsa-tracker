@@ -2,37 +2,30 @@ import { useState, useEffect } from 'react';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-export default function App() {
-  const [questions, setQuestions] = useState(() => {
-    const saved = localStorage.getItem('dsa-tracker-data');
-    return saved ? JSON.parse(saved) : [];
-  });
+const getDaysAgo = (timestamp) => {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const past = new Date(timestamp); past.setHours(0,0,0,0);
+  return Math.floor((today - past) / ONE_DAY_MS);
+};
 
+const formatDate = (daysAgo) => {
+  const d = new Date(Date.now() - daysAgo * ONE_DAY_MS);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+
+
+export default function App() {
+  const [questions, setQuestions] = useState([]);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [ticker, setTicker] = useState(0);
 
   useEffect(() => {
-    localStorage.setItem('dsa-tracker-data', JSON.stringify(questions));
-  }, [questions]);
-
-  useEffect(() => {
     const t = setInterval(() => { setCurrentTime(Date.now()); setTicker(p => p+1); }, 60000);
     return () => clearInterval(t);
   }, []);
-
-  const getDaysAgo = (timestamp) => {
-    const today = new Date(currentTime); today.setHours(0,0,0,0);
-    const past = new Date(timestamp); past.setHours(0,0,0,0);
-    return Math.floor((today - past) / ONE_DAY_MS);
-  };
-
-  const formatDate = (daysAgo) => {
-    const d = new Date(currentTime);
-    d.setDate(d.getDate() - daysAgo);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -42,7 +35,7 @@ export default function App() {
   };
 
   const markDone = (id) => setQuestions(prev => prev.map(q => q.id === id ? {...q, isReviewed: true} : q));
-  const del = (id) => { if (window.confirm('Remove this problem?')) setQuestions(prev => prev.filter(q => q.id !== id)); };
+  const del = (id) => { if (confirm('Remove this problem?')) setQuestions(prev => prev.filter(q => q.id !== id)); };
 
   const due = questions.filter(q => !q.isReviewed && getDaysAgo(q.dateAdded) >= 10);
   const active = questions.filter(q => !q.isReviewed && getDaysAgo(q.dateAdded) < 10);
@@ -57,11 +50,14 @@ export default function App() {
       <header style={styles.nav}>
         <div style={styles.navLeft}>
           <div style={styles.logoMark}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <rect x="2" y="2" width="7" height="7" fill="#4dff91"/>
-              <rect x="11" y="2" width="7" height="7" fill="#ff4d4d" opacity="0.7"/>
-              <rect x="2" y="11" width="7" height="7" fill="#ffe066" opacity="0.7"/>
-              <rect x="11" y="11" width="7" height="7" fill="white" opacity="0.15"/>
+            <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+              <rect x="2"  y="2"  width="13" height="13" rx="2" fill="#4dff91"/>
+              <rect x="19" y="2"  width="13" height="13" rx="2" fill="#ff4d4d" opacity="0.8"/>
+              <rect x="2"  y="19" width="13" height="13" rx="2" fill="#ffe066" opacity="0.8"/>
+              <rect x="19" y="19" width="13" height="13" rx="2" fill="white" opacity="0.15"/>
+              <rect x="6"  y="6"  width="5"  height="5"  rx="1" fill="#0a0a0a" opacity="0.25"/>
+              <rect x="23" y="6"  width="5"  height="5"  rx="1" fill="#0a0a0a" opacity="0.25"/>
+              <rect x="6"  y="23" width="5"  height="5"  rx="1" fill="#0a0a0a" opacity="0.25"/>
             </svg>
           </div>
           <div>
@@ -86,13 +82,13 @@ export default function App() {
         <form onSubmit={handleAdd} style={styles.formCard} className="form-card">
           <div style={styles.formLabel}>
             <span style={{color:'#4dff91', fontFamily:'monospace', marginRight:8}}>›</span>
-            <span style={{color:'#ffffff'}}>LOG NEW PROBLEM</span>
+            LOG NEW PROBLEM
           </div>
           <div style={styles.formRow}>
             <input
               className="dsa-input"
-              style={{...styles.input, flex:1.2, color:'#ffffff'}}
-              placeholder="Problem title"
+              style={{...styles.input, flex:1.2}}
+              placeholder="Problem title — e.g. Two Sum"
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
@@ -100,7 +96,7 @@ export default function App() {
             <input
               className="dsa-input"
               style={{...styles.input, flex:1}}
-              placeholder="URL"
+              placeholder="LeetCode URL"
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
@@ -182,29 +178,18 @@ export default function App() {
               else if (daysAgo === 1) label = 'YESTERDAY';
               const daysLeft = 10 - daysAgo;
 
-              const isAlternate = daysAgo % 2 !== 0;
-
+              const isAlt = daysAgo % 2 !== 0;
               return (
-                <div key={daysAgo} style={styles.dayRow}>
-                  <div style={{
-                    ...styles.node,
-                    background: daysAgo === 0 ? '#4dff91' : '#161618',
-                    boxShadow: daysAgo === 0 ? '0 0 12px #4dff91' : 'none',
-                  }}/>
+                <div key={daysAgo} style={{
+                  ...styles.dayRow,
+                  background: 'transparent',
+                  borderRadius: 10,
+                  marginBottom: 6,
+                  border: `1px solid ${isAlt ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.07)'}`,
+                }}>
+                  <div style={{...styles.node, background: daysAgo === 0 ? '#4dff91' : 'rgba(255,255,255,0.25)', boxShadow: daysAgo === 0 ? `0 0 12px #4dff91` : 'none'}}/>
 
-                  <div style={{
-                    ...styles.dayContent,
-                    background: isAlternate ? '#09090b' : 'transparent',
-                    padding: '14px 18px',
-                    borderRadius: '10px',
-                    // CHANGE 2: visible border on ALL rows
-                    border: isAlternate
-                      ? '1px solid rgba(255,255,255,0.1)'
-                      : '1px solid rgba(255,255,255,0.08)',
-                    // CHANGE 3: extra bottom margin on alternate rows for separation
-                    marginBottom: isAlternate ? '20px' : '8px',
-                    boxShadow: isAlternate ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
-                  }}>
+                  <div style={styles.dayContent}>
                     <div style={styles.dayHeader}>
                       <span style={{...styles.dayLabel, color: daysAgo === 0 ? '#4dff91' : 'white'}}>
                         {label}
@@ -220,11 +205,15 @@ export default function App() {
                     ) : (
                       <div style={{display:'flex', flexDirection:'column', gap:6, marginTop:8}}>
                         {qs.map(q => (
-                          <div key={q.id} style={styles.qItem} className="q-item">
-                            <a href={q.url} target="_blank" rel="noopener noreferrer" style={styles.qName}>
+                          <div key={q.id} style={{
+                            ...styles.qItem,
+                            background: 'rgba(255,255,255,0.92)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                          }} className="q-item">
+                            <a href={q.url} target="_blank" rel="noopener noreferrer" style={{...styles.qName, color: '#111'}}>
                               {q.title}
                             </a>
-                            <button onClick={() => del(q.id)} style={styles.delBtn} className="del-btn" title="Remove">
+                            <button onClick={() => del(q.id)} style={{...styles.delBtn, color: 'rgba(0,0,0,0.35)'}} className="del-btn" title="Remove">
                               ×
                             </button>
                           </div>
@@ -245,7 +234,7 @@ export default function App() {
 const styles = {
   root: {
     minHeight: '100vh',
-    background: '#161618',
+    background: '#2a2a2a',
     color: 'white',
     fontFamily: '"DM Mono", "Fira Mono", "Courier New", monospace',
   },
@@ -254,15 +243,15 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '16px 28px',
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
-    background: '#09090b',
+    borderBottom: '1px solid rgba(255,255,255,0.07)',
+    background: '#0d0d0d',
     position: 'sticky',
     top: 0,
     zIndex: 10,
   },
   navLeft: { display: 'flex', alignItems: 'center', gap: 14 },
   logoMark: {
-    width: 38, height: 38,
+    width: 44, height: 44,
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 8,
@@ -272,7 +261,7 @@ const styles = {
   appSub: { fontSize: 9, letterSpacing: 3, color: 'rgba(255,255,255,0.3)', marginTop: 1 },
   navRight: { display: 'flex', alignItems: 'center', gap: 10 },
   datePill: {
-    fontSize: 10, letterSpacing: 2, color: 'white',
+    fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.3)',
     padding: '5px 12px', border: '1px solid rgba(255,255,255,0.07)',
     borderRadius: 4,
   },
@@ -284,17 +273,16 @@ const styles = {
   },
   main: { maxWidth: 860, margin: '0 auto', padding: '40px 28px' },
   formCard: {
-    background: '#09090b',
-    border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: '24px 28px',
+    background: '#111',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 10,
+    padding: '20px 24px',
     marginBottom: 48,
-    boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
   },
   formLabel: { fontSize: 10, letterSpacing: 3, color: 'rgba(255,255,255,0.4)', marginBottom: 14 },
   formRow: { display: 'flex', gap: 10, flexWrap: 'wrap' },
   input: {
-    background: 'rgba(255,255,255,0.03)',
+    background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 6,
     padding: '11px 14px',
@@ -339,9 +327,7 @@ const styles = {
     borderRadius: 8,
   },
   dueCard: {
-    background: '#09090b',
-    border: '1px solid rgba(255,77,77,0.2)',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+    background: '#111', border: '1px solid rgba(255,77,77,0.2)',
     borderRadius: 8, padding: '14px 16px',
     display: 'flex', alignItems: 'center', gap: 14,
     position: 'relative', overflow: 'hidden',
@@ -361,18 +347,17 @@ const styles = {
   },
   spine: {
     position: 'absolute', left: 5, top: 10, bottom: 10,
-    width: 2, background: 'rgba(255,255,255,0.08)',
+    width: 1, background: 'rgba(255,255,255,0.08)',
   },
   dayRow: {
-    position: 'relative', paddingLeft: 30, paddingBottom: 0,
+    position: 'relative', paddingLeft: 30, paddingBottom: 28,
     display: 'flex', gap: 0,
   },
   node: {
-    position: 'absolute', left: -1, top: 14,
-    width: 14, height: 14, borderRadius: '50%',
-    border: '3px solid #161618',
+    position: 'absolute', left: 0, top: 10,
+    width: 11, height: 11, borderRadius: '50%',
+    border: '2px solid #2a2a2a',
     flexShrink: 0,
-    zIndex: 2,
   },
   dayContent: { flex: 1, minWidth: 0 },
   dayHeader: {
@@ -380,11 +365,11 @@ const styles = {
     marginBottom: 8, flexWrap: 'wrap', gap: 6,
   },
   dayLabel: { fontSize: 13, fontWeight: 700, letterSpacing: 2 },
+
   noQ: { fontSize: 11, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic', marginTop: 6 },
-  // CHANGE 1: light white background on question items
   qItem: {
-    border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.07)',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.07)',
     borderRadius: 6, padding: '9px 12px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     transition: 'border-color 0.15s',
@@ -406,14 +391,17 @@ const CSS = `
   .form-card:focus-within { border-color: rgba(77,255,145,0.3) !important; }
 
   .dsa-input:focus { border-color: rgba(77,255,145,0.5) !important; background: rgba(77,255,145,0.04) !important; }
-  .dsa-input::placeholder { color: rgba(255,255,255,0.6); }
+  .dsa-input::placeholder { color: rgba(255,255,255,0.2); }
 
   .add-btn:hover { background: #6fffaa !important; transform: translateY(-1px); }
-  .done-btn:hover { background: rgba(77,255,145,0.2) !important; }
-  .due-card:hover { border-color: rgba(255,77,77,0.4) !important; }
-  .q-item:hover { border-color: rgba(255,255,255,0.15) !important; }
-  .del-btn:hover { color: rgba(255,77,77,0.7) !important; }
+  .add-btn:active { transform: scale(0.97); }
 
-  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-  .blink-dot { animation: blink 2s ease-in-out infinite; }
+  .due-card:hover { border-color: rgba(255,77,77,0.4) !important; }
+  .done-btn:hover { background: rgba(77,255,145,0.2) !important; border-color: rgba(77,255,145,0.5) !important; }
+
+  .q-item:hover { border-color: rgba(255,255,255,0.15) !important; }
+  .q-item:hover .del-btn { color: rgba(255,77,77,0.7) !important; }
+
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+  .blink-dot { animation: blink 1.5s ease-in-out infinite; }
 `;
